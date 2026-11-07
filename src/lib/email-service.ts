@@ -19,6 +19,16 @@ export interface ParentInviteData {
   expiresInHours?: number;
 }
 
+export interface ParentCredentialsData {
+  parentName: string;
+  studentName: string;
+  email: string;
+  password: string;
+  loginUrl: string;
+  teacherName?: string;
+  schoolName?: string;
+}
+
 export interface PasswordResetData {
   userName: string;
   resetUrl: string;
@@ -102,6 +112,92 @@ export function renderParentInvitationEmail(data: ParentInviteData): string {
     </div>
     <div class="footer">
       &copy; ${new Date().getFullYear()} AULA360 &bull; Institución Educativa &bull; Todos los derechos reservados.
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+// 1.1 PLANTILLA: CONFIRMACIÓN Y ENTREGA DE CREDENCIALES AL REPRESENTANTE
+export function renderParentCredentialsEmail(data: ParentCredentialsData): string {
+  const teacher = data.teacherName || 'El Profesor Titular';
+  const school = data.schoolName || 'Colegio AULA360';
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tus Credenciales de Acceso a AULA360</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #F8FAFC; margin: 0; padding: 24px; color: #1E293B; }
+    .container { max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    .header { background: #2563EB; padding: 32px 24px; text-align: center; color: #FFFFFF; }
+    .header h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p { margin: 6px 0 0; font-size: 14px; opacity: 0.9; }
+    .content { padding: 32px 28px; line-height: 1.6; }
+    .salutation { font-size: 18px; font-weight: 600; color: #0F172A; margin-bottom: 16px; }
+    .info-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin: 20px 0; }
+    .credentials-card { background: #EFF6FF; border: 2px solid #BFDBFE; border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .credentials-title { font-size: 15px; font-weight: 700; color: #1E40AF; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cred-row { margin: 10px 0; font-size: 14px; color: #334155; }
+    .cred-label { font-weight: 600; color: #1E293B; display: inline-block; width: 120px; }
+    .cred-value { font-family: 'Courier New', Courier, monospace; font-size: 16px; font-weight: 700; color: #1E40AF; background: #FFFFFF; padding: 4px 10px; border-radius: 6px; border: 1px solid #DBEAFE; display: inline-block; }
+    .btn-container { text-align: center; margin: 32px 0 20px; }
+    .btn { display: inline-block; background-color: #2563EB; color: #FFFFFF !important; font-weight: 600; font-size: 16px; text-decoration: none; padding: 14px 36px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.25); }
+    .btn:hover { background-color: #1D4ED8; }
+    .security-notice { background: #F8FAFC; border-left: 4px solid #64748B; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #64748B; margin-top: 24px; }
+    .footer { padding: 20px 24px; text-align: center; font-size: 12px; color: #94A3B8; border-top: 1px solid #F1F5F9; background: #FAFBFD; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>AULA360</h1>
+      <p>Plataforma de Gestión y Seguimiento Académico</p>
+    </div>
+    <div class="content">
+      <div class="salutation">Estimado(a) ${data.parentName},</div>
+      <p>
+        El profesor <strong>${teacher}</strong> de la institución <strong>${school}</strong> ha registrado su cuenta individual de representante legal en la plataforma escolar AULA360.
+      </p>
+      
+      <div class="info-box">
+        <p style="margin: 0; font-size: 14px; color: #1E293B;">
+          <strong>Estudiante Vinculado (Regla 1:1):</strong> ${data.studentName}
+        </p>
+        <p style="margin: 6px 0 0; font-size: 13px; color: #64748B;">
+          A través de este acceso podrá consultar las calificaciones oficiales, evaluaciones parciales por materia, observaciones y boletines escolares de su representado(a).
+        </p>
+      </div>
+
+      <div class="credentials-card">
+        <div class="credentials-title">🔑 Sus Credenciales de Acceso</div>
+        <div class="cred-row">
+          <span class="cred-label">Usuario / Email:</span>
+          <span class="cred-value">${data.email}</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Contraseña:</span>
+          <span class="cred-value">${data.password}</span>
+        </div>
+      </div>
+
+      <div class="btn-container">
+        <a href="${data.loginUrl}" class="btn" target="_blank">Iniciar Sesión en AULA360</a>
+      </div>
+
+      <div class="security-notice">
+        <strong>Aviso de Privacidad y Seguridad:</strong>
+        <p style="margin: 4px 0 0;">
+          Su cuenta tiene acceso exclusivo a los datos de <strong>${data.studentName}</strong>. Le recomendamos no compartir sus credenciales. Podrá cambiar su contraseña en cualquier momento ingresando a su perfil en la plataforma.
+        </p>
+      </div>
+    </div>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} ${school} &bull; AULA360 &bull; Todos los derechos reservados.
     </div>
   </div>
 </body>

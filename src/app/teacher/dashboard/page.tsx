@@ -5,6 +5,7 @@ import { TeacherLayout } from '@/components/layout/TeacherLayout';
 import { DataProvider } from '@/lib/data-provider';
 import {
   Users,
+  UserCheck,
   BookOpen,
   GraduationCap,
   AlertCircle,
@@ -121,25 +122,27 @@ export default function TeacherDashboard() {
 
           <Card className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-              <AlertCircle className="w-6 h-6" />
+              <UserCheck className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Representantes Pendientes</p>
-              <h3 className="text-2xl font-extrabold text-amber-600 mt-0.5">{pendingCount}</h3>
-              <Link href="/teacher/validations" className="text-[11px] text-blue-600 font-medium hover:underline">
-                Revisar estados →
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Representantes (1:1)</p>
+              <h3 className="text-2xl font-extrabold text-amber-600 mt-0.5">{parents.length}</h3>
+              <Link href="/teacher/parents" className="text-[11px] text-blue-600 font-medium hover:underline">
+                Gestionar acudientes →
               </Link>
             </div>
           </Card>
 
           <Card className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-6 h-6" />
+              <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Revisiones Completadas</p>
-              <h3 className="text-2xl font-extrabold text-emerald-600 mt-0.5">{completedCount}</h3>
-              <p className="text-[11px] text-emerald-600 font-medium">Versión vigente confirmada</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Asignaturas Activas</p>
+              <h3 className="text-2xl font-extrabold text-emerald-600 mt-0.5">{subjects.length}</h3>
+              <Link href="/teacher/subjects" className="text-[11px] text-blue-600 font-medium hover:underline">
+                Plan de estudios →
+              </Link>
             </div>
           </Card>
         </div>
@@ -277,34 +280,6 @@ export default function TeacherDashboard() {
                           <p className="text-[10px] text-slate-500">{subject?.name}</p>
                         </div>
                         <Badge variant={g.grade >= 3.0 ? 'success' : 'danger'}>{g.grade.toFixed(2)}</Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Latest Validations */}
-              <div className="pt-2">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Confirmaciones de Padres
-                </p>
-                <div className="space-y-2.5">
-                  {validations.slice(0, 3).map((v) => {
-                    const student = students.find((s) => s.id === v.student_id);
-                    const period = periods.find((p) => p.id === v.period_id);
-                    const parent = parents.find((p) => p.id === v.parent_id);
-                    const currentVer = student ? DataProvider.getCurrentAcademicVersion(student.id, v.period_id) : 1;
-                    const isValid = v.version_reviewed === currentVer;
-
-                    return (
-                      <div key={v.id} className="text-xs border-b border-slate-100 pb-2 flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-800">{student?.first_name} {student?.last_name}</p>
-                          <p className="text-[10px] text-slate-400">{parent?.full_name} • {period?.name} (v{v.version_reviewed})</p>
-                        </div>
-                        <Badge variant={isValid ? 'success' : 'warning'}>
-                          {isValid ? 'Vigente' : 'Revisión Req.'}
-                        </Badge>
                       </div>
                     );
                   })}

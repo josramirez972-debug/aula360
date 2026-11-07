@@ -36,7 +36,6 @@ const navItems = [
   { href: '/teacher/periods', label: 'Períodos académicos', icon: Calendar },
   { href: '/teacher/grades', label: 'Calificaciones', icon: GraduationCap },
   { href: '/teacher/observations', label: 'Observaciones', icon: MessageSquare },
-  { href: '/teacher/validations', label: 'Validaciones', icon: CheckCircle2 },
   { href: '/teacher/settings', label: 'Configuración', icon: Settings },
 ];
 

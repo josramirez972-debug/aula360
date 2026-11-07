@@ -63,14 +63,13 @@ assert(teacherScript.includes('AULA360_TEACHER_EMAIL'), 'init-teacher debe leer 
 assert(teacherScript.includes('SUPABASE_SERVICE_ROLE_KEY'), 'init-teacher debe requerir SUPABASE_SERVICE_ROLE_KEY');
 console.log('   ✓ Scripts de inicialización idempotentes listos');
 
-// Test 6: API de Invitación con Regla Estricta 1:1
+// Test 6: API de Invitación y Credenciales con Regla Estricta 1:1
 console.log('\n6. Verificando endpoint /api/parents/invite...');
 const inviteRoutePath = path.join(rootDir, 'src/app/api/parents/invite/route.ts');
 const inviteContent = fs.readFileSync(inviteRoutePath, 'utf8');
-assert(inviteContent.includes('generateLink'), 'Debe generar enlace seguro con generateLink');
 assert(inviteContent.includes('parent_students'), 'Debe validar y persistir en parent_students');
-assert(inviteContent.includes('renderParentInvitationEmail'), 'Debe invocar la plantilla de invitación');
-console.log('   ✓ Endpoint /api/parents/invite verificado con regla 1:1 y envío seguro');
+assert(inviteContent.includes('renderParentCredentialsEmail'), 'Debe invocar la plantilla de confirmación de credenciales');
+console.log('   ✓ Endpoint /api/parents/invite verificado con regla 1:1 y envío de credenciales');
 
 // Test 7: Comandos en package.json
 console.log('\n7. Verificando scripts en package.json...');

@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { renderParentInvitationEmail, sendEmail } from '@/lib/email-service';
+import { renderParentCredentialsEmail, sendEmail } from '@/lib/email-service';
 
 /**
- * AULA360 - Endpoint de Provisión Segura e Invitación de Representantes
+ * AULA360 - Endpoint de Provisión Segura y Envío de Credenciales de Representantes
  * Regla Fundamental:
  * - Solo el profesor titular puede autorizar la creación de cuentas de representantes.
  * - Registro público deshabilitado.
  * - Validación estricta 1:1 (un representante por estudiante, un estudiante por representante).
+ * - Envía confirmación por correo con usuario y contraseña para acceso directo a la plataforma.
  * - Utiliza SUPABASE_SERVICE_ROLE_KEY exclusivamente en el servidor.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, full_name, phone, student_id } = body;
+    const { email, full_name, phone, student_id, password } = body;
 
     if (!email || !full_name) {
       return NextResponse.json({ error: 'Faltan campos obligatorios (Nombre y Correo electrónico).' }, { status: 400 });
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = full_name.trim();
+    // Contraseña asignada o autogenerada amigable
+    const rawPassword = password?.trim() || `Aula360-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -88,34 +91,31 @@ export async function POST(request: Request) {
         }
       }
 
-      // 3. Crear invitación o usuario en Supabase Auth Admin API
-      const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'https://aula360.app';
-      const redirectTo = `${origin}/login?invited=true`;
-
+      // 3. Crear o actualizar usuario en Supabase Auth con la contraseña asignada
       let userId: string;
-      let activationUrl: string | undefined;
+      const { data: usersList } = await supabaseAdmin.auth.admin.listUsers();
+      const existingAuthUser = usersList?.users?.find((u) => u.email?.toLowerCase() === cleanEmail);
 
-      // Generar enlace seguro de invitación
-      const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'invite',
-        email: cleanEmail,
-        options: {
-          redirectTo,
-          data: {
+      if (existingAuthUser) {
+        userId = existingAuthUser.id;
+        // Actualizar contraseña y metadatos
+        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password: rawPassword,
+          email_confirm: true,
+          user_metadata: {
             full_name: cleanName,
             role: 'PARENT',
             phone: phone || null,
           },
-        },
-      });
-
-      if (!linkErr && linkData?.properties?.action_link) {
-        userId = linkData.user.id;
-        activationUrl = linkData.properties.action_link;
+        });
+        if (updateErr) {
+          return NextResponse.json({ error: updateErr.message }, { status: 400 });
+        }
       } else {
-        // Fallback: createUser directo
+        // Crear usuario nuevo en Auth con su contraseña
         const { data: userData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
           email: cleanEmail,
+          password: rawPassword,
           email_confirm: true,
           user_metadata: {
             full_name: cleanName,
@@ -149,44 +149,44 @@ export async function POST(request: Request) {
         });
       }
 
-      // 6. Enviar correo transaccional si hay enlace y configuración de correo
-      let emailSent = false;
-      let emailError: string | undefined;
+      // 6. Enviar confirmación por correo con usuario y contraseña
+      const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'https://aula360.josramirez972.workers.dev';
+      const loginUrl = `${origin}/login`;
 
-      if (activationUrl) {
-        const html = renderParentInvitationEmail({
-          parentName: cleanName,
-          studentName,
-          teacherName: 'Prof. Administrador',
-          schoolName: 'Colegio AULA360',
-          activationUrl,
-          expiresInHours: 48,
-        });
+      const html = renderParentCredentialsEmail({
+        parentName: cleanName,
+        studentName,
+        email: cleanEmail,
+        password: rawPassword,
+        loginUrl,
+        teacherName: 'Prof. Administrador',
+        schoolName: 'Colegio AULA360',
+      });
 
-        const sendResult = await sendEmail({
-          to: cleanEmail,
-          subject: 'Invitación a AULA360: Active su cuenta de Representante',
-          html,
-        });
-
-        emailSent = sendResult.success;
-        emailError = sendResult.error;
-      }
+      const sendResult = await sendEmail({
+        to: cleanEmail,
+        subject: 'Tus credenciales de acceso a AULA360',
+        html,
+      });
 
       // 7. Registro de auditoría
       await supabaseAdmin.from('audit_logs').insert({
-        action: 'INVITE_PARENT',
+        action: 'CREATE_PARENT_ACCOUNT',
         entity_type: 'PROFILE',
         entity_id: userId,
-        new_data: { email: cleanEmail, full_name: cleanName, student_id, emailSent },
+        new_data: { email: cleanEmail, full_name: cleanName, student_id, emailSent: sendResult.success },
       });
 
       return NextResponse.json({
         success: true,
         user_id: userId,
-        email_sent: emailSent,
-        email_error: emailError,
-        activation_url: activationUrl ? '[Enlace Creado Seguramente]' : undefined,
+        email_sent: sendResult.success,
+        email_error: sendResult.error,
+        credentials: {
+          email: cleanEmail,
+          password: rawPassword,
+          loginUrl,
+        },
       });
     }
 
@@ -194,6 +194,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       mode: 'demo',
+      credentials: {
+        email: cleanEmail,
+        password: rawPassword,
+      },
       message: 'Representante registrado en almacenamiento local (Modo Demo).',
     });
   } catch (err: unknown) {
